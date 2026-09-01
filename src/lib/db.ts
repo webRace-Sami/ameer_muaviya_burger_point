@@ -1,21 +1,31 @@
-import { PrismaClient } from '@prisma/client';
+import { neon } from '@neondatabase/serverless';
 import fs from 'fs';
 import path from 'path';
 import { initialShopSetting, initialMenuItems } from './seed-data';
 import { ShopSetting, MenuItem, Order, OrderStatus } from './types';
 
-// Global Prisma instance
-const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
+// Neon database connection URL
+const DATABASE_URL =
+  process.env.DATABASE_URL ||
+  'postgresql://neondb_owner:npg_0GSy1rCPtmNJ@ep-sparkling-bonus-ay88nvqy-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require';
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-  });
+function getSql() {
+  if (
+    !DATABASE_URL ||
+    DATABASE_URL.includes('placeholder_') ||
+    DATABASE_URL.includes('your_password')
+  ) {
+    return null;
+  }
+  try {
+    return neon(DATABASE_URL);
+  } catch (err) {
+    console.warn('Neon connection failed:', err);
+    return null;
+  }
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
-// File-based persistence fallback store location
+// In-Memory / File Fallback Store
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'store.json');
 
@@ -25,118 +35,80 @@ interface StoreSchema {
   orders: Order[];
 }
 
+let inMemoryStore: StoreSchema = {
+  shopSetting: initialShopSetting,
+  menuItems: initialMenuItems,
+  orders: [],
+};
+
 function ensureDataFile(): StoreSchema {
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (fs.existsSync(DATA_FILE)) {
+      const content = fs.readFileSync(DATA_FILE, 'utf-8');
+      inMemoryStore = JSON.parse(content);
+      return inMemoryStore;
     }
-    if (!fs.existsSync(DATA_FILE)) {
-      const initialStore: StoreSchema = {
-        shopSetting: initialShopSetting,
-        menuItems: initialMenuItems,
-        orders: [
-          {
-            id: 'ord_demo_1',
-            orderNumber: 101,
-            customerName: 'Muhammad Usman (محمد عثمان)',
-            customerPhone: '0302-7654321',
-            customerAddress: 'Al-Razi Chowk, Nokhar Road',
-            specialNotes: 'زیادہ پیاز اور اسپیشل ساس ڈالیں',
-            items: [
-              { id: 'item_single_egg', nameEn: 'Single Egg Burger', nameUr: 'سنگل انڈہ برگر (انڈہ شامی)', price: 130, quantity: 2 },
-              { id: 'item_shawarma_special', nameEn: 'Special Chicken Shawarma', nameUr: 'اسپیشل چکن شاورما', price: 170, quantity: 1 }
-            ],
-            totalAmount: 430,
-            status: 'COOKING',
-            createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-          }
-        ],
-      };
-      fs.writeFileSync(DATA_FILE, JSON.stringify(initialStore, null, 2), 'utf-8');
-      return initialStore;
-    }
-    const content = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(content) as StoreSchema;
-  } catch (err) {
-    console.error('Error accessing fallback store:', err);
-    return {
-      shopSetting: initialShopSetting,
-      menuItems: initialMenuItems,
-      orders: [],
-    };
-  }
+  } catch {}
+  return inMemoryStore;
 }
 
 function saveStore(store: StoreSchema) {
+  inMemoryStore = store;
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error saving fallback store:', err);
-  }
-}
-
-// Check if Prisma Database is connected and working
-let isPostgresHealthy: boolean | null = null;
-
-async function checkPostgres(): Promise<boolean> {
-  const url = process.env.DATABASE_URL || '';
-  if (!url || url.includes('placeholder_') || url.includes('your_password')) {
-    return false;
-  }
-  if (isPostgresHealthy !== null) return isPostgresHealthy;
-
-  try {
-    // Quick test query
-    await prisma.$queryRaw`SELECT 1`;
-    isPostgresHealthy = true;
-    return true;
-  } catch {
-    isPostgresHealthy = false;
-    return false;
-  }
+  } catch {}
 }
 
 export const db = {
-  // Shop Settings
+  // ==========================================
+  // SHOP SETTINGS
+  // ==========================================
   async getShopSetting(): Promise<ShopSetting> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
-        let setting = await prisma.shopSetting.findFirst();
-        if (!setting) {
-          setting = await prisma.shopSetting.create({
-            data: {
-              id: initialShopSetting.id,
-              nameEn: initialShopSetting.nameEn,
-              nameUr: initialShopSetting.nameUr,
-              phone: initialShopSetting.phone,
-              locationEn: initialShopSetting.locationEn,
-              locationUr: initialShopSetting.locationUr,
-              openTime: initialShopSetting.openTime,
-              closeTime: initialShopSetting.closeTime,
-              isOpen: initialShopSetting.isOpen,
-              announcement: initialShopSetting.announcement,
-            },
-          });
+        const rows = await sql`
+          SELECT * FROM "ShopSetting" WHERE "id" = 'default_setting' LIMIT 1
+        `;
+        if (rows.length > 0) {
+          const r = rows[0];
+          return {
+            id: r.id,
+            nameEn: r.nameEn,
+            nameUr: r.nameUr,
+            phone: r.phone,
+            locationEn: r.locationEn,
+            locationUr: r.locationUr,
+            openTime: r.openTime,
+            closeTime: r.closeTime,
+            isOpen: Boolean(r.isOpen),
+            announcement: r.announcement,
+            updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
+          };
+        } else {
+          // Insert initial setting
+          await sql`
+            INSERT INTO "ShopSetting" ("id", "nameEn", "nameUr", "phone", "locationEn", "locationUr", "openTime", "closeTime", "isOpen", "announcement")
+            VALUES (
+              ${initialShopSetting.id},
+              ${initialShopSetting.nameEn},
+              ${initialShopSetting.nameUr},
+              ${initialShopSetting.phone},
+              ${initialShopSetting.locationEn},
+              ${initialShopSetting.locationUr},
+              ${initialShopSetting.openTime},
+              ${initialShopSetting.closeTime},
+              ${initialShopSetting.isOpen},
+              ${initialShopSetting.announcement}
+            )
+          `;
+          return initialShopSetting;
         }
-        return {
-          id: setting.id,
-          nameEn: setting.nameEn,
-          nameUr: setting.nameUr,
-          phone: setting.phone,
-          locationEn: setting.locationEn,
-          locationUr: setting.locationUr,
-          openTime: setting.openTime,
-          closeTime: setting.closeTime,
-          isOpen: setting.isOpen,
-          announcement: setting.announcement,
-          updatedAt: setting.updatedAt.toISOString(),
-        };
       } catch (err) {
-        console.warn('Prisma shop fetch failed, using local store:', err);
+        console.warn('Neon shop fetch error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
@@ -144,30 +116,41 @@ export const db = {
   },
 
   async updateShopSetting(data: Partial<ShopSetting>): Promise<ShopSetting> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
         const current = await this.getShopSetting();
-        const updated = await prisma.shopSetting.update({
-          where: { id: current.id },
-          data: {
-            nameEn: data.nameEn,
-            nameUr: data.nameUr,
-            phone: data.phone,
-            locationEn: data.locationEn,
-            locationUr: data.locationUr,
-            openTime: data.openTime,
-            closeTime: data.closeTime,
-            isOpen: data.isOpen !== undefined ? data.isOpen : undefined,
-            announcement: data.announcement,
-          },
-        });
-        return {
-          ...updated,
-          updatedAt: updated.updatedAt.toISOString(),
-        };
+        const updated = { ...current, ...data };
+        await sql`
+          INSERT INTO "ShopSetting" ("id", "nameEn", "nameUr", "phone", "locationEn", "locationUr", "openTime", "closeTime", "isOpen", "announcement", "updatedAt")
+          VALUES (
+            'default_setting',
+            ${updated.nameEn},
+            ${updated.nameUr},
+            ${updated.phone},
+            ${updated.locationEn},
+            ${updated.locationUr},
+            ${updated.openTime},
+            ${updated.closeTime},
+            ${updated.isOpen},
+            ${updated.announcement},
+            NOW()
+          )
+          ON CONFLICT ("id") DO UPDATE SET
+            "nameEn" = EXCLUDED."nameEn",
+            "nameUr" = EXCLUDED."nameUr",
+            "phone" = EXCLUDED."phone",
+            "locationEn" = EXCLUDED."locationEn",
+            "locationUr" = EXCLUDED."locationUr",
+            "openTime" = EXCLUDED."openTime",
+            "closeTime" = EXCLUDED."closeTime",
+            "isOpen" = EXCLUDED."isOpen",
+            "announcement" = EXCLUDED."announcement",
+            "updatedAt" = NOW()
+        `;
+        return updated;
       } catch (err) {
-        console.warn('Prisma shop update failed, using local store:', err);
+        console.warn('Neon shop update error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
@@ -180,41 +163,42 @@ export const db = {
     return store.shopSetting;
   },
 
-  // Menu Items
+  // ==========================================
+  // MENU ITEMS
+  // ==========================================
   async getMenuItems(): Promise<MenuItem[]> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
-        const count = await prisma.menuItem.count();
-        if (count === 0) {
-          // Seed items to Neon PostgreSQL
+        const rows = await sql`
+          SELECT * FROM "MenuItem" ORDER BY "sortOrder" ASC, "createdAt" ASC
+        `;
+        if (rows.length === 0) {
+          // Seed menu items
           for (const item of initialMenuItems) {
-            await prisma.menuItem.create({
-              data: {
-                id: item.id,
-                nameEn: item.nameEn,
-                nameUr: item.nameUr,
-                description: item.description,
-                price: item.price,
-                category: item.category,
-                image: item.image,
-                isAvailable: item.isAvailable,
-                isFeatured: item.isFeatured ?? false,
-                sortOrder: item.sortOrder ?? 0,
-              },
-            });
+            await sql`
+              INSERT INTO "MenuItem" ("id", "nameEn", "nameUr", "description", "price", "category", "image", "isAvailable", "isFeatured", "sortOrder")
+              VALUES (${item.id}, ${item.nameEn}, ${item.nameUr}, ${item.description}, ${item.price}, ${item.category}, ${item.image}, ${item.isAvailable}, ${item.isFeatured}, ${item.sortOrder})
+            `;
           }
+          return initialMenuItems;
         }
-        const items = await prisma.menuItem.findMany({
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        });
-        return items.map((i) => ({
-          ...i,
-          createdAt: i.createdAt.toISOString(),
-          updatedAt: i.updatedAt.toISOString(),
+        return rows.map((r) => ({
+          id: r.id,
+          nameEn: r.nameEn,
+          nameUr: r.nameUr,
+          description: r.description,
+          price: Number(r.price),
+          category: r.category,
+          image: r.image,
+          isAvailable: Boolean(r.isAvailable),
+          isFeatured: Boolean(r.isFeatured),
+          sortOrder: Number(r.sortOrder || 0),
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+          updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
         }));
       } catch (err) {
-        console.warn('Prisma menu fetch failed, using local store:', err);
+        console.warn('Neon menu fetch error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
@@ -222,30 +206,23 @@ export const db = {
   },
 
   async addMenuItem(item: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<MenuItem> {
-    const hasPg = await checkPostgres();
     const id = `item_${Date.now()}`;
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
-        const created = await prisma.menuItem.create({
-          data: {
-            nameEn: item.nameEn,
-            nameUr: item.nameUr,
-            description: item.description || null,
-            price: Number(item.price),
-            category: item.category || 'Burgers',
-            image: item.image || '/images/single-egg-burger.jpg',
-            isAvailable: item.isAvailable ?? true,
-            isFeatured: item.isFeatured ?? false,
-            sortOrder: item.sortOrder ?? 0,
-          },
-        });
+        await sql`
+          INSERT INTO "MenuItem" ("id", "nameEn", "nameUr", "description", "price", "category", "image", "isAvailable", "isFeatured", "sortOrder")
+          VALUES (${id}, ${item.nameEn}, ${item.nameUr}, ${item.description || null}, ${Number(item.price)}, ${item.category || 'Burgers'}, ${item.image || '/images/single-egg-burger.jpg'}, ${item.isAvailable ?? true}, ${item.isFeatured ?? false}, ${item.sortOrder ?? 0})
+        `;
         return {
-          ...created,
-          createdAt: created.createdAt.toISOString(),
-          updatedAt: created.updatedAt.toISOString(),
+          ...item,
+          id,
+          price: Number(item.price),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
       } catch (err) {
-        console.warn('Prisma menu add failed, using local store:', err);
+        console.warn('Neon add item error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
@@ -262,23 +239,50 @@ export const db = {
   },
 
   async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | null> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
-        const updated = await prisma.menuItem.update({
-          where: { id },
-          data: {
-            ...updates,
-            price: updates.price !== undefined ? Number(updates.price) : undefined,
-          },
-        });
-        return {
-          ...updated,
-          createdAt: updated.createdAt.toISOString(),
-          updatedAt: updated.updatedAt.toISOString(),
-        };
+        const rows = await sql`SELECT * FROM "MenuItem" WHERE "id" = ${id} LIMIT 1`;
+        if (rows.length > 0) {
+          const current = rows[0];
+          const nameEn = updates.nameEn !== undefined ? updates.nameEn : current.nameEn;
+          const nameUr = updates.nameUr !== undefined ? updates.nameUr : current.nameUr;
+          const description = updates.description !== undefined ? updates.description : current.description;
+          const price = updates.price !== undefined ? Number(updates.price) : Number(current.price);
+          const category = updates.category !== undefined ? updates.category : current.category;
+          const image = updates.image !== undefined ? updates.image : current.image;
+          const isAvailable = updates.isAvailable !== undefined ? updates.isAvailable : current.isAvailable;
+          const isFeatured = updates.isFeatured !== undefined ? updates.isFeatured : current.isFeatured;
+
+          await sql`
+            UPDATE "MenuItem" SET
+              "nameEn" = ${nameEn},
+              "nameUr" = ${nameUr},
+              "description" = ${description},
+              "price" = ${price},
+              "category" = ${category},
+              "image" = ${image},
+              "isAvailable" = ${isAvailable},
+              "isFeatured" = ${isFeatured},
+              "updatedAt" = NOW()
+            WHERE "id" = ${id}
+          `;
+
+          return {
+            id,
+            nameEn,
+            nameUr,
+            description,
+            price,
+            category,
+            image,
+            isAvailable: Boolean(isAvailable),
+            isFeatured: Boolean(isFeatured),
+            updatedAt: new Date().toISOString(),
+          };
+        }
       } catch (err) {
-        console.warn('Prisma menu update failed, using local store:', err);
+        console.warn('Neon update item error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
@@ -295,13 +299,13 @@ export const db = {
   },
 
   async deleteMenuItem(id: string): Promise<boolean> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
-        await prisma.menuItem.delete({ where: { id } });
+        await sql`DELETE FROM "MenuItem" WHERE "id" = ${id}`;
         return true;
       } catch (err) {
-        console.warn('Prisma menu delete failed, using local store:', err);
+        console.warn('Neon delete item error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
@@ -311,29 +315,31 @@ export const db = {
     return store.menuItems.length < prevLen;
   },
 
-  // Orders
+  // ==========================================
+  // ORDERS
+  // ==========================================
   async getOrders(): Promise<Order[]> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
-        const orders = await prisma.order.findMany({
-          orderBy: { createdAt: 'desc' },
-        });
-        return orders.map((o) => ({
-          id: o.id,
-          orderNumber: o.orderNumber,
-          customerName: o.customerName,
-          customerPhone: o.customerPhone,
-          customerAddress: o.customerAddress,
-          specialNotes: o.specialNotes,
-          items: o.items as any,
-          totalAmount: o.totalAmount,
-          status: o.status as OrderStatus,
-          createdAt: o.createdAt.toISOString(),
-          updatedAt: o.updatedAt.toISOString(),
+        const rows = await sql`
+          SELECT * FROM "Order" ORDER BY "createdAt" DESC LIMIT 100
+        `;
+        return rows.map((r) => ({
+          id: r.id,
+          orderNumber: Number(r.orderNumber),
+          customerName: r.customerName,
+          customerPhone: r.customerPhone,
+          customerAddress: r.customerAddress,
+          specialNotes: r.specialNotes,
+          items: (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) as any,
+          totalAmount: Number(r.totalAmount),
+          status: r.status as OrderStatus,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+          updatedAt: r.updatedAt ? new Date(r.updatedAt).toISOString() : new Date().toISOString(),
         }));
       } catch (err) {
-        console.warn('Prisma order fetch failed, using local store:', err);
+        console.warn('Neon orders fetch error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
@@ -350,41 +356,36 @@ export const db = {
     items: { id: string; nameEn: string; nameUr: string; price: number; quantity: number }[];
     totalAmount: number;
   }): Promise<Order> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const id = `ord_${Date.now()}`;
+    const sql = getSql();
+    if (sql) {
       try {
-        const created = await prisma.order.create({
-          data: {
-            customerName: data.customerName,
-            customerPhone: data.customerPhone,
-            customerAddress: data.customerAddress,
-            specialNotes: data.specialNotes || null,
-            items: data.items,
-            totalAmount: data.totalAmount,
-            status: 'PENDING',
-          },
-        });
+        const rows = await sql`
+          INSERT INTO "Order" ("id", "customerName", "customerPhone", "customerAddress", "specialNotes", "items", "totalAmount", "status")
+          VALUES (${id}, ${data.customerName}, ${data.customerPhone}, ${data.customerAddress}, ${data.specialNotes || null}, ${JSON.stringify(data.items)}, ${Number(data.totalAmount)}, 'PENDING')
+          RETURNING "orderNumber", "createdAt"
+        `;
+        const orderNumber = rows[0]?.orderNumber || 101;
         return {
-          id: created.id,
-          orderNumber: created.orderNumber,
-          customerName: created.customerName,
-          customerPhone: created.customerPhone,
-          customerAddress: created.customerAddress,
-          specialNotes: created.specialNotes,
-          items: created.items as any,
-          totalAmount: created.totalAmount,
-          status: created.status as OrderStatus,
-          createdAt: created.createdAt.toISOString(),
-          updatedAt: created.updatedAt.toISOString(),
+          id,
+          orderNumber: Number(orderNumber),
+          customerName: data.customerName,
+          customerPhone: data.customerPhone,
+          customerAddress: data.customerAddress,
+          specialNotes: data.specialNotes || null,
+          items: data.items,
+          totalAmount: Number(data.totalAmount),
+          status: 'PENDING',
+          createdAt: rows[0]?.createdAt ? new Date(rows[0].createdAt).toISOString() : new Date().toISOString(),
         };
       } catch (err) {
-        console.warn('Prisma create order failed, using local store:', err);
+        console.warn('Neon create order error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
     const maxNumber = store.orders.reduce((max, o) => Math.max(max, o.orderNumber || 100), 100);
     const newOrder: Order = {
-      id: `ord_${Date.now()}`,
+      id,
       orderNumber: maxNumber + 1,
       customerName: data.customerName,
       customerPhone: data.customerPhone,
@@ -402,28 +403,31 @@ export const db = {
   },
 
   async updateOrderStatus(id: string, status: OrderStatus): Promise<Order | null> {
-    const hasPg = await checkPostgres();
-    if (hasPg) {
+    const sql = getSql();
+    if (sql) {
       try {
-        const updated = await prisma.order.update({
-          where: { id },
-          data: { status },
-        });
-        return {
-          id: updated.id,
-          orderNumber: updated.orderNumber,
-          customerName: updated.customerName,
-          customerPhone: updated.customerPhone,
-          customerAddress: updated.customerAddress,
-          specialNotes: updated.specialNotes,
-          items: updated.items as any,
-          totalAmount: updated.totalAmount,
-          status: updated.status as OrderStatus,
-          createdAt: updated.createdAt.toISOString(),
-          updatedAt: updated.updatedAt.toISOString(),
-        };
+        await sql`
+          UPDATE "Order" SET "status" = ${status}, "updatedAt" = NOW() WHERE "id" = ${id}
+        `;
+        const rows = await sql`SELECT * FROM "Order" WHERE "id" = ${id} LIMIT 1`;
+        if (rows.length > 0) {
+          const r = rows[0];
+          return {
+            id: r.id,
+            orderNumber: Number(r.orderNumber),
+            customerName: r.customerName,
+            customerPhone: r.customerPhone,
+            customerAddress: r.customerAddress,
+            specialNotes: r.specialNotes,
+            items: (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) as any,
+            totalAmount: Number(r.totalAmount),
+            status: r.status as OrderStatus,
+            createdAt: new Date(r.createdAt).toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+        }
       } catch (err) {
-        console.warn('Prisma order status update failed, using local store:', err);
+        console.warn('Neon order status update error, using fallback:', err);
       }
     }
     const store = ensureDataFile();
