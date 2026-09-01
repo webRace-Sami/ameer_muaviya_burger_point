@@ -1,0 +1,206 @@
+{
+  "shopSetting": {
+    "id": "default_setting",
+    "nameEn": "Ameer Muaviya Burger Point",
+    "nameUr": "امیر معاویہ برگر پوائنٹ",
+    "phone": "0300-9642811",
+    "locationEn": "Main Bazaar, Near Al-Razi Hospital Road, Nokhar",
+    "locationUr": "مین بازار، نزْد الرازی ہسپتال روڈ، نوکھر",
+    "openTime": "12:00 AM",
+    "closeTime": "12:00 PM",
+    "isOpen": true,
+    "announcement": "گرما گرم تازہ برگر نوکھر میں 15 منٹ میں دستیاب ہیں!",
+    "updatedAt": "2026-09-01T03:56:55.648Z"
+  },
+  "menuItems": [
+    {
+      "id": "item_single_egg",
+      "nameEn": "Single Egg Burger",
+      "nameUr": "سنگل انڈہ برگر (انڈہ شامی)",
+      "description": "Crispy fried egg, spiced beef/chicken shami kabab, crunchy onion, coleslaw, mint raita & special tangy burger chutney on a toasted sesame bun.",
+      "price": 180,
+      "category": "Burgers",
+      "image": "/images/single-egg-burger.jpg",
+      "isAvailable": true,
+      "isFeatured": true,
+      "sortOrder": 1,
+      "updatedAt": "2026-09-01T04:13:15.037Z"
+    },
+    {
+      "id": "item_double_egg",
+      "nameEn": "Double Egg Burger",
+      "nameUr": "ڈبل انڈہ برگر (اسپیشل)",
+      "description": "Double golden fried eggs, double shami kabab, fresh crispy salad, secret burger spice blend, creamy mayo & zesty desi raita.",
+      "price": 180,
+      "category": "Burgers",
+      "image": "/images/double-egg-burger.jpg",
+      "isAvailable": true,
+      "isFeatured": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "item_chicken_burger",
+      "nameEn": "Crispy Chicken Zinger Burger",
+      "nameUr": "چکن زنگر برگر",
+      "description": "Golden crunchy chicken breast fillet, melted cheddar cheese, fresh iceberg lettuce, and signature spicy garlic mayo in a soft brioche bun.",
+      "price": 260,
+      "category": "Burgers",
+      "image": "/images/crispy-chicken-burger.jpg",
+      "isAvailable": true,
+      "isFeatured": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "item_shawarma_special",
+      "nameEn": "Special Chicken Shawarma",
+      "nameUr": "اسپیشل چکن شاورما",
+      "description": "Succulent marinated grilled chicken, pickled cucumber, crispy fries, special garlic sauce (Toum), wrapped in soft fresh pita bread.",
+      "price": 170,
+      "category": "Shawarma",
+      "image": "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=80",
+      "isAvailable": true,
+      "isFeatured": true,
+      "sortOrder": 4
+    },
+    {
+      "id": "item_cheese_shawarma",
+      "nameEn": "Chicken Cheese Shawarma",
+      "nameUr": "چکن پنیر شاورما (چیزی)",
+      "description": "Shredded roasted spiced chicken loaded with melted mozzarella & cheddar cheese, garlic mayo and hot chili sauce.",
+      "price": 220,
+      "category": "Shawarma",
+      "image": "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=800&q=80",
+      "isAvailable": true,
+      "isFeatured": false,
+      "sortOrder": 5
+    },
+    {
+      "id": "item_masala_fries",
+      "nameEn": "Crispy Masala Fries",
+      "nameUr": "کرسپی مصالحہ فرائز",
+      "description": "Golden crispy potato chips tossed in special Nokhar chaat masala and herbs, served with spicy garlic ketchup.",
+      "price": 120,
+      "category": "Fries & Sides",
+      "image": "https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=800&q=80",
+      "isAvailable": true,
+      "isFeatured": false,
+      "sortOrder": 6
+    },
+    {
+      "id": "item_chicken_roll",
+      "nameEn": "Chicken Paratha Roll",
+      "nameUr": "چکن پراٹھا رول",
+      "description": "Crispy fried paratha stuffed with juicy chicken boti chunks, sliced red onions and thick mint chutney.",
+      "price": 210,
+      "category": "Shawarma",
+      "image": "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=800&q=80",
+      "isAvailable": true,
+      "isFeatured": false,
+      "sortOrder": 7
+    },
+    {
+      "id": "item_cold_drinks",
+      "nameEn": "Chilled Soft Drink (500ml)",
+      "nameUr": "ٹھنڈی کولڈ ڈرنک (پیپسی / 7 اپ / میرنڈا)",
+      "description": "Ice cold refreshing beverage bottle (Pepsi, 7Up, Mirinda, Mountain Dew, or Pakola).",
+      "price": 90,
+      "category": "Drinks",
+      "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800&q=80",
+      "isAvailable": true,
+      "isFeatured": false,
+      "sortOrder": 8
+    },
+    {
+      "nameEn": "Special Jumbo Shami Burger",
+      "nameUr": "اسپیشل جمبو شامی برگر",
+      "description": "Crispy fried shami kabab, crunchy salad, special Nokhar raita.",
+      "price": 150,
+      "category": "Burgers",
+      "image": "/images/single-egg-burger.jpg",
+      "isAvailable": true,
+      "isFeatured": false,
+      "sortOrder": 0,
+      "id": "item_1788235015660",
+      "createdAt": "2026-09-01T03:56:55.660Z",
+      "updatedAt": "2026-09-01T03:56:55.660Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord_1788235947115",
+      "orderNumber": 103,
+      "customerName": "SAMI ULLAH",
+      "customerPhone": "99098230943",
+      "customerAddress": "Streat No.1, Near Primary School",
+      "specialNotes": "Spicy",
+      "items": [
+        {
+          "id": "item_single_egg",
+          "nameEn": "Single Egg Burger",
+          "nameUr": "سنگل انڈہ برگر (انڈہ شامی)",
+          "price": 130,
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 130,
+      "status": "PENDING",
+      "createdAt": "2026-09-01T04:12:27.115Z",
+      "updatedAt": "2026-09-01T04:12:27.115Z"
+    },
+    {
+      "id": "ord_1788235010108",
+      "orderNumber": 102,
+      "customerName": "Muhammad Ali (محمد علی)",
+      "customerPhone": "0301-8889999",
+      "customerAddress": "Main Bazaar Near Al-Razi Chowk, Nokhar",
+      "specialNotes": "زیادہ گرین چٹنی اور پیاز ڈالیں",
+      "items": [
+        {
+          "id": "item_single_egg",
+          "nameEn": "Single Egg Burger",
+          "nameUr": "سنگل انڈہ برگر (انڈہ شامی)",
+          "price": 130,
+          "quantity": 2
+        },
+        {
+          "id": "item_shawarma_special",
+          "nameEn": "Special Chicken Shawarma",
+          "nameUr": "اسپیشل چکن شاورما",
+          "price": 170,
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 430,
+      "status": "READY",
+      "createdAt": "2026-09-01T03:56:50.108Z",
+      "updatedAt": "2026-09-01T04:09:08.571Z"
+    },
+    {
+      "id": "ord_demo_1",
+      "orderNumber": 101,
+      "customerName": "Muhammad Usman (محمد عثمان)",
+      "customerPhone": "0302-7654321",
+      "customerAddress": "Al-Razi Chowk, Nokhar Road",
+      "specialNotes": "زیادہ پیاز اور اسپیشل ساس ڈالیں",
+      "items": [
+        {
+          "id": "item_single_egg",
+          "nameEn": "Single Egg Burger",
+          "nameUr": "سنگل انڈہ برگر (انڈہ شامی)",
+          "price": 130,
+          "quantity": 2
+        },
+        {
+          "id": "item_shawarma_special",
+          "nameEn": "Special Chicken Shawarma",
+          "nameUr": "اسپیشل چکن شاورما",
+          "price": 170,
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 430,
+      "status": "COOKING",
+      "createdAt": "2026-09-01T03:41:39.935Z"
+    }
+  ]
+}

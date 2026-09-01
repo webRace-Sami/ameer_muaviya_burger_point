@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ShopSetting {
+  id              String   @id @default("default_setting")
+  nameEn          String   @default("Ameer Muaviya Burger Point")
+  nameUr          String   @default("امیر معاویہ برگر پوائنٹ")
+  phone           String   @default("0300-1234567")
+  locationEn      String   @default("Main Bazaar, Nokhar")
+  locationUr      String   @default("مین بازار، نوکھر")
+  openTime        String   @default("12:00 PM")
+  closeTime       String   @default("12:00 AM")
+  isOpen          Boolean  @default(true)
+  announcement    String?  @default("تازہ اور لذیذ برگر اور شاورما دستیاب ہیں!")
+  updatedAt       DateTime @updatedAt
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  nameEn      String
+  nameUr      String
+  description String?
+  price       Float
+  category    String   @default("Burgers") // Burgers, Shawarma, Fries, Drinks
+  image       String
+  isAvailable Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     Int      @default(autoincrement())
+  customerName    String
+  customerPhone   String
+  customerAddress String
+  specialNotes    String?
+  items           Json     // [{ id, nameEn, nameUr, price, quantity }]
+  totalAmount     Float
+  status          String   @default("PENDING") // PENDING, COOKING, READY, DELIVERED, CANCELLED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
