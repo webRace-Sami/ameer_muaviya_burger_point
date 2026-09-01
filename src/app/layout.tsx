@@ -20,6 +20,11 @@ export const metadata: Metadata = {
     'Double Egg Burger',
     'Chicken Shawarma Nokhar',
   ],
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
   authors: [{ name: 'Ameer Muaviya Burger Point' }],
 };
 
